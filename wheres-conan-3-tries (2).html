@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Where's Conan?</title>
+  <style>
+    :root {
+      --bg-dark: #121929;
+      --card-bg: #1a233a;
+      --border-orange: #ff7700;
+      --text-white: #ffffff;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Fredoka', 'Comic Sans MS', sans-serif;
+      background-color: #0b0f19;
+      color: var(--text-white);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+
+    .game-shell {
+      width: 98vw;
+      max-width: 1050px;
+      height: 95vh;
+      max-height: 720px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      background: var(--bg-dark);
+      border: 3px solid var(--border-orange);
+      border-radius: 16px;
+      box-shadow: 0 0 20px rgba(255, 119, 0, 0.4);
+      padding: 1rem 1.5rem;
+    }
+
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 0.8rem;
+    }
+
+    .title-area {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .magnifier-icon {
+      width: 38px;
+      height: 38px;
+      background: var(--border-orange);
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 1.3rem;
+      box-shadow: 0 0 10px var(--border-orange);
+    }
+
+    h1 {
+      font-size: 2.2rem;
+      color: #fff;
+      text-shadow: 2px 2px 0px #000;
+      letter-spacing: 1px;
+    }
+
+    .status-text {
+      font-size: 1rem;
+      color: #b0c4de;
+      margin-top: 2px;
+    }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .round-counter {
+      font-weight: bold;
+      background: #ff8800;
+      color: #ffffff;
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 0.95rem;
+      text-shadow: 1px 1px 0px rgba(0,0,0,0.5);
+      box-shadow: inset 0 2px 4px rgba(255,255,255,0.4);
+    }
+
+    button {
+      font-family: inherit;
+      cursor: pointer;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-weight: bold;
+      color: white;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 0 rgba(0,0,0,0.4);
+    }
+
+    button:active {
+      transform: translateY(2px);
+      box-shadow: 0 2px 0 rgba(0,0,0,0.4);
+    }
+
+    button:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .icon-button {
+      width: 54px;
+      height: 40px;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.15rem;
+      flex: 0 0 54px;
+    }
+
+    .show-button { background: #00b0ff; }
+    .shuffle-button { background: #ff9800; }
+    .reveal-button { background: #9c27b0; }
+    .mode-button { background: #2e7d32; }
+    .fullscreen-button { background: #37474f; }
+
+    .stage-container {
+      flex: 1;
+      border: 2px solid var(--border-orange);
+      border-radius: 12px;
+      background: linear-gradient(to bottom, #162032 0%, #0d1322 100%);
+      position: relative;
+      padding: 1.5rem;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+    }
+
+    .front-conan {
+      position: absolute;
+      top: 45%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 100;
+      pointer-events: none;
+    }
+
+    .front-conan img {
+      max-height: 280px;
+      filter: drop-shadow(0 10px 15px rgba(0,0,0,0.8));
+    }
+
+    .hide {
+      display: none !important;
+    }
+
+    /* Doors Grid Setup */
+    .door-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      grid-template-rows: 1fr;
+      gap: 18px;
+      width: 100%;
+      height: 100%;
+      max-width: 950px;
+      position: relative;
+    }
+
+    .door-card {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      perspective: 800px;
+      cursor: pointer;
+      transition: transform 0.4s ease-in-out;
+    }
+
+    /* Fixed door frame background revealing Conan */
+    .door-back {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #060911;
+      border: 2px solid var(--border-orange);
+      border-radius: 6px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.95);
+      z-index: 1;
+    }
+
+    .door-back img {
+      max-height: 85%;
+      max-width: 85%;
+      object-fit: contain;
+    }
+
+    /* Front Door Swinging Panel */
+    .door-front {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      transform-origin: left center;
+      transition: transform 0.6s ease-in-out;
+      z-index: 2;
+    }
+
+    .door-card.open .door-front {
+      transform: rotateY(-75deg);
+    }
+
+    .door-img {
+      width: 100%;
+      height: 100%;
+      object-fit: fill;
+      display: block;
+      filter: drop-shadow(0 0 2px var(--border-orange));
+    }
+
+    /* Colored door overlay when in color mode */
+    .color-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      mix-blend-mode: color;
+      pointer-events: none;
+      border-radius: 6px;
+    }
+
+    .badge {
+      position: absolute;
+      bottom: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 2px solid #ffffff;
+      color: white;
+      font-size: 1rem;
+      font-weight: bold;
+      padding: 2px 18px;
+      border-radius: 20px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.5);
+      z-index: 10;
+      pointer-events: none;
+      text-transform: capitalize;
+    }
+
+    .number-badge {
+      background: linear-gradient(to bottom, #ff8800, #e65c00);
+    }
+
+    .side-tools {
+      position: absolute;
+      right: -55px;
+      top: 50%;
+      transform: translateY(-50%);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .tool-button {
+      background: var(--card-bg);
+      border: 2px solid var(--border-orange);
+      color: white;
+      border-radius: 50%;
+      width: 42px;
+      height: 42px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 1.1rem;
+    }
+
+    .floating-panel {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: var(--card-bg);
+      border: 2px solid var(--border-orange);
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+      padding: 1.2rem;
+      z-index: 200;
+      width: 85%;
+      max-width: 480px;
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      border-bottom: 1px solid #2a3756;
+      padding-bottom: 8px;
+    }
+
+    .close-panel {
+      background: none;
+      border: none;
+      font-size: 1.2rem;
+      color: #ff5555;
+      box-shadow: none;
+    }
+
+    .pattern-bubbles {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .bubble {
+      padding: 12px 16px;
+      border-radius: 12px;
+      font-weight: bold;
+    }
+
+    .question-bubble { background: #1e3a5f; color: #80d4ff; align-self: flex-start; }
+    .answer-bubble { background: #1b4d3e; color: #80ffaa; align-self: flex-end; }
+
+    canvas {
+      border: 1px solid var(--border-orange);
+      width: 100%;
+      height: 260px;
+      background: #ffffff;
+      border-radius: 6px;
+    }
+
+    /* Flashing Game Over Banner */
+    .game-over-banner {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(18, 25, 41, 0.95);
+      border: 4px solid var(--border-orange);
+      padding: 2rem;
+      border-radius: 16px;
+      text-align: center;
+      z-index: 300;
+      animation: pulse-glow 1s infinite alternate;
+    }
+
+    .flashing-score {
+      font-size: 3rem;
+      font-weight: bold;
+      color: #ffea00;
+      margin: 1rem 0;
+      animation: flash-text 0.5s infinite alternate;
+    }
+
+    @keyframes flash-text {
+      from { opacity: 1; transform: scale(1); }
+      to { opacity: 0.4; transform: scale(1.05); }
+    }
+
+    @keyframes pulse-glow {
+      from { box-shadow: 0 0 20px #ff7700; }
+      to { box-shadow: 0 0 40px #ffea00; }
+    }
+  </style>
+</head>
+<body>
+  <main class="game-shell" id="gameShell">
+    <header class="top-bar">
+      <div class="title-area">
+        <div class="magnifier-icon" aria-hidden="true">🔍</div>
+        <div>
+          <h1>Where's Conan?</h1>
+          <p id="statusText" class="status-text">Press Show Conan to start.</p>
+        </div>
+      </div>
+      <div class="controls">
+        <div id="roundCounter" class="round-counter">round 0 / 5</div>
+        <button id="modeBtn" class="mode-button icon-button" type="button" title="Switch Mode" aria-label="Switch Mode">🔢</button>
+        <button id="showConanBtn" class="show-button icon-button" type="button" title="Show Conan" aria-label="Show Conan">🕵️</button>
+        <button id="shuffleBtn" class="shuffle-button icon-button" type="button" title="Shuffle Doors" aria-label="Shuffle Doors" disabled>🔀</button>
+        <button id="revealBtn" class="reveal-button icon-button" type="button" title="Reveal Conan" aria-label="Reveal Conan" disabled>🚪</button>
+        <button id="nextBtn" class="show-button icon-button" type="button" title="Next Round" aria-label="Next Round" disabled>▶</button>
+        <button id="fullscreenBtn" class="fullscreen-button icon-button" type="button" title="Toggle Fullscreen" aria-label="Toggle Fullscreen">⛶</button>
+      </div>
+    </header>
+
+    <section class="stage-container" aria-label="six doors stage">
+      <div id="frontConan" class="front-conan hide" aria-hidden="true">
+        <img src="conan.webp" alt="Conan">
+      </div>
+      <div id="doorGrid" class="door-grid"></div>
+      <div id="gameOverBanner" class="game-over-banner hide">
+        <h2>🎉 Game Complete! 🎉</h2>
+        <div id="finalScoreText" class="flashing-score">Score: 0 / 5</div>
+        <button id="restartBtn" class="show-button" type="button">Play Again</button>
+      </div>
+    </section>
+
+    <aside class="side-tools" aria-label="classroom tools">
+      <button id="dialogueBtn" class="tool-button" type="button" title="Sentence Pattern">💬</button>
+      <button id="whiteboardBtn" class="tool-button" type="button" title="Whiteboard">✏️</button>
+      <button id="scoreBtn" class="tool-button" type="button" title="Score">⭐</button>
+    </aside>
+
+    <section id="dialoguePanel" class="floating-panel hide" aria-hidden="true">
+      <div class="panel-header">
+        <h2>Sentence Pattern</h2>
+        <button class="close-panel" type="button" data-close="dialoguePanel">✕</button>
+      </div>
+      <div class="pattern-bubbles">
+        <div class="bubble question-bubble">Where's Conan?</div>
+        <div id="patternAnswer" class="bubble answer-bubble">He's behind door number ________.</div>
+      </div>
+    </section>
+
+    <section id="whiteboardPanel" class="floating-panel hide" aria-hidden="true">
+      <div class="panel-header">
+        <h2>Whiteboard</h2>
+        <button class="close-panel" type="button" data-close="whiteboardPanel">✕</button>
+      </div>
+      <canvas id="whiteboardCanvas"></canvas>
+    </section>
+
+    <section id="scorePanel" class="floating-panel hide" aria-hidden="true">
+      <div class="panel-header">
+        <h2>Score Board</h2>
+        <button class="close-panel" type="button" data-close="scorePanel">✕</button>
+      </div>
+      <div id="scoreDisplay">Current Score: 0 / 5</div>
+    </section>
+  </main>
+
+  <script>
+    const TOTAL_ROUNDS = 5;
+    const NUM_DOORS = 5;
+    const COLOR_LIST = [
+      { name: 'red', hex: 'rgba(255, 0, 0, 0.45)' },
+      { name: 'green', hex: 'rgba(0, 200, 83, 0.45)' },
+      { name: 'blue', hex: 'rgba(41, 121, 255, 0.45)' },
+      { name: 'white', hex: 'rgba(255, 255, 255, 0.55)' },
+      { name: 'yellow', hex: 'rgba(255, 214, 0, 0.45)' },
+      { name: 'orange', hex: 'rgba(255, 109, 0, 0.45)' }
+    ];
+
+    let currentRound = 0;
+    let score = 0;
+    let doorsData = [];
+    let targetDoorIndex = -1;
+    let isShuffling = false;
+    let currentMode = 'numbers'; // 'numbers' or 'colors'
+    let triesLeft = 3;
+    let roundLocked = false;
+
+    const gameShell = document.getElementById('gameShell');
+    const doorGrid = document.getElementById('doorGrid');
+    const roundCounter = document.getElementById('roundCounter');
+    const statusText = document.getElementById('statusText');
+    const showConanBtn = document.getElementById('showConanBtn');
+    const shuffleBtn = document.getElementById('shuffleBtn');
+    const revealBtn = document.getElementById('revealBtn');
+    const modeBtn = document.getElementById('modeBtn');
+    const fullscreenBtn = document.getElementById('fullscreenBtn');
+    const frontConan = document.getElementById('frontConan');
+    const patternAnswer = document.getElementById('patternAnswer');
+    const scoreDisplay = document.getElementById('scoreDisplay');
+    const gameOverBanner = document.getElementById('gameOverBanner');
+    const finalScoreText = document.getElementById('finalScoreText');
+    const restartBtn = document.getElementById('restartBtn');
+    const nextBtn = document.getElementById('nextBtn');
+
+    // Simple built-in game sounds using the Web Audio API. No external audio files needed.
+    let audioCtx = null;
+
+    function getAudioContext() {
+      if (!audioCtx) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) return null;
+        audioCtx = new AudioContextClass();
+      }
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      return audioCtx;
+    }
+
+    function playClickSound() {
+      const ctx = getAudioContext();
+      if (!ctx) return;
+
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(650, now);
+      osc.frequency.exponentialRampToValueAtTime(420, now + 0.045);
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(0.09, now + 0.005);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.055);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.06);
+    }
+
+    function playDoorOpenSound() {
+      const ctx = getAudioContext();
+      if (!ctx) return;
+
+      const now = ctx.currentTime;
+
+      // Short wooden/creaky tone.
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(180, now);
+      osc.frequency.exponentialRampToValueAtTime(75, now + 0.42);
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(0.12, now + 0.025);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.46);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.48);
+
+      // Soft filtered noise for a door-moving/whoosh effect.
+      const buffer = ctx.createBuffer(1, ctx.sampleRate * 0.45, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * 0.35;
+      const noise = ctx.createBufferSource();
+      const filter = ctx.createBiquadFilter();
+      const noiseGain = ctx.createGain();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(900, now);
+      filter.frequency.exponentialRampToValueAtTime(260, now + 0.4);
+      noiseGain.gain.setValueAtTime(0.0001, now);
+      noiseGain.gain.exponentialRampToValueAtTime(0.045, now + 0.04);
+      noiseGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.43);
+      noise.connect(filter).connect(noiseGain).connect(ctx.destination);
+      noise.start(now);
+      noise.stop(now + 0.45);
+    }
+
+    // Give the classroom controls a small click sound.
+    document.querySelectorAll('button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (!btn.disabled) playClickSound();
+      });
+    });
+
+    function getRandomNumbers() {
+      const numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+      numbers.sort(() => Math.random() - 0.5);
+      return numbers.slice(0, NUM_DOORS);
+    }
+
+    function initGame() {
+      currentRound = 0;
+      score = 0;
+      gameOverBanner.classList.add('hide');
+      updateRoundUI();
+      setupNewRound();
+    }
+
+    function setupNewRound() {
+      if (currentRound >= TOTAL_ROUNDS) {
+        endGame();
+        return;
+      }
+
+      currentRound++;
+      triesLeft = 3;
+      roundLocked = false;
+      updateRoundUI();
+      statusText.textContent = "Press Show Conan to hide him behind a door. You have 3 tries.";
+      frontConan.classList.add('hide');
+
+      doorGrid.innerHTML = '';
+      doorsData = [];
+
+      const numbers = getRandomNumbers();
+      const colors = [...COLOR_LIST].sort(() => Math.random() - 0.5);
+
+      for (let i = 0; i < NUM_DOORS; i++) {
+        const numberVal = numbers[i];
+        const colorObj = colors[i];
+
+        const doorEl = document.createElement('div');
+        doorEl.className = 'door-card';
+        doorEl.style.gridArea = `1 / ${i + 1}`;
+
+        const isColor = currentMode === 'colors';
+        const badgeText = isColor ? colorObj.name : numberVal;
+        const badgeBg = isColor ? colorObj.hex.replace('0.45', '1').replace('0.55', '1') : '';
+
+        doorEl.innerHTML = `
+          <div class="door-back">
+            <img src="conan.webp" class="conan-hidden hide" alt="Conan">
+          </div>
+          <div class="door-front">
+            <img src="door.png" class="door-img" alt="Door">
+            ${isColor ? `<div class="color-overlay" style="background-color: ${colorObj.hex};"></div>` : ''}
+            <div class="badge ${isColor ? '' : 'number-badge'}" style="${isColor ? `background: ${badgeBg};` : ''}">${badgeText}</div>
+          </div>
+        `;
+
+        // Direct binding so clicking door OR badge toggles ONLY this card
+        doorEl.addEventListener('click', () => handleDoorClick(i));
+        doorGrid.appendChild(doorEl);
+
+        doorsData.push({
+          element: doorEl,
+          number: numberVal,
+          color: colorObj,
+          hasConan: false,
+          gridPos: i
+        });
+      }
+
+      showConanBtn.disabled = false;
+      shuffleBtn.disabled = true;
+      revealBtn.disabled = true;
+      nextBtn.disabled = true;
+    }
+
+    function updateRoundUI() {
+      roundCounter.textContent = `round ${currentRound} / ${TOTAL_ROUNDS} · tries ${triesLeft}`;
+      scoreDisplay.textContent = `Current Score: ${score} / ${TOTAL_ROUNDS}`;
+      patternAnswer.textContent = currentMode === 'colors' 
+        ? "He's behind the ________ door." 
+        : "He's behind door number ________.";
+    }
+
+    showConanBtn.addEventListener('click', () => {
+      targetDoorIndex = Math.floor(Math.random() * NUM_DOORS);
+      
+      doorsData.forEach((d, idx) => {
+        const img = d.element.querySelector('.conan-hidden');
+        if (idx === targetDoorIndex) {
+          d.hasConan = true;
+          img.classList.remove('hide');
+        } else {
+          d.hasConan = false;
+          img.classList.add('hide');
+        }
+      });
+
+      frontConan.classList.remove('hide');
+      statusText.textContent = "Conan is ready! Now press Shuffle.";
+      
+      showConanBtn.disabled = true;
+      shuffleBtn.disabled = false;
+    });
+
+    // Instant shuffle: doors change positions immediately, with no animation.
+    shuffleBtn.addEventListener('click', () => {
+      frontConan.classList.add('hide');
+      statusText.textContent = "Shuffling doors...";
+      shuffleBtn.disabled = true;
+      isShuffling = true;
+
+      // Shuffle the five door positions once.
+      const positions = [0, 1, 2, 3, 4].sort(() => Math.random() - 0.5);
+      doorsData.forEach((d, idx) => {
+        d.gridPos = positions[idx];
+        d.element.style.gridArea = `1 / ${d.gridPos + 1}`;
+      });
+
+      // Let the browser paint the new positions before enabling guesses.
+      requestAnimationFrame(() => {
+        isShuffling = false;
+        statusText.textContent = currentMode === 'colors'
+          ? "Which colored door is Conan behind?"
+          : "Which numbered door is Conan behind?";
+        revealBtn.disabled = true;
+      });
+    });
+
+    function handleDoorClick(index) {
+      if (isShuffling || roundLocked || triesLeft <= 0) return;
+
+      const clickedDoor = doorsData[index];
+      playClickSound();
+      clickedDoor.element.classList.add('open');
+      playDoorOpenSound();
+      triesLeft--;
+
+      if (clickedDoor.hasConan) {
+        score++;
+        roundLocked = true;
+        statusText.textContent = `🎉 Correct! Conan is behind door ${clickedDoor.number}!`;
+        updateRoundUI();
+        doorsData.forEach(d => d.element.style.pointerEvents = 'none');
+        nextBtn.disabled = false;
+        revealBtn.disabled = true;
+      } else if (triesLeft > 0) {
+        statusText.textContent = `❌ Not this door! ${triesLeft} ${triesLeft === 1 ? 'try' : 'tries'} left.`;
+        updateRoundUI();
+      } else {
+        roundLocked = true;
+        statusText.textContent = `😮 No tries left! Conan was behind door ${doorsData[targetDoorIndex].number}.`;
+        doorsData[targetDoorIndex].element.classList.add('open');
+        playDoorOpenSound();
+        updateRoundUI();
+        nextBtn.disabled = false;
+        revealBtn.disabled = true;
+      }
+    }
+
+    revealBtn.addEventListener('click', () => {
+      if (roundLocked) return;
+      doorsData.forEach((d) => d.element.classList.add('open'));
+      playDoorOpenSound();
+      roundLocked = true;
+      statusText.textContent = `Conan is behind door ${doorsData[targetDoorIndex].number}.`;
+      nextBtn.disabled = false;
+      revealBtn.disabled = true;
+    });
+
+    nextBtn.addEventListener('click', () => {
+      if (currentRound < TOTAL_ROUNDS) {
+        setupNewRound();
+      } else {
+        endGame();
+      }
+    });
+
+    function endGame() {
+      statusText.textContent = "Game Complete!";
+      showConanBtn.disabled = true;
+      shuffleBtn.disabled = true;
+      revealBtn.disabled = true;
+      nextBtn.disabled = true;
+      finalScoreText.textContent = `Score: ${score} / ${TOTAL_ROUNDS}`;
+      gameOverBanner.classList.remove('hide');
+    }
+
+    restartBtn.addEventListener('click', initGame);
+
+    // Toggle Modes (Numbers vs Colors)
+    modeBtn.addEventListener('click', () => {
+      currentMode = currentMode === 'numbers' ? 'colors' : 'numbers';
+      modeBtn.textContent = currentMode === 'colors' ? '🎨' : '🔢';
+      initGame();
+    });
+
+    // Fullscreen Toggle
+    fullscreenBtn.addEventListener('click', () => {
+      if (!document.fullscreenElement) {
+        gameShell.requestFullscreen().catch(err => {
+          alert(`Error attempting to enable fullscreen: ${err.message}`);
+        });
+      } else {
+        document.exitFullscreen();
+      }
+    });
+
+    // Classroom Floating Tool Panels
+    document.getElementById('dialogueBtn').addEventListener('click', () => {
+      document.getElementById('dialoguePanel').classList.toggle('hide');
+    });
+    document.getElementById('whiteboardBtn').addEventListener('click', () => {
+      document.getElementById('whiteboardPanel').classList.toggle('hide');
+    });
+    document.getElementById('scoreBtn').addEventListener('click', () => {
+      document.getElementById('scorePanel').classList.toggle('hide');
+    });
+
+    document.querySelectorAll('.close-panel').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const panelId = e.target.getAttribute('data-close');
+        document.getElementById(panelId).classList.add('hide');
+      });
+    });
+
+    initGame();
+  </script>
+</body>
+</html>
